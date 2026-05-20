@@ -252,6 +252,7 @@ function DiscussionOrVotingScreen({ gameState, socket, me, canVote }: { gameStat
 
 export default function App() {
   const [view, setView] = useState<'name' | 'landing' | 'settings' | 'game'>('name');
+  const [isBackendAwake, setIsBackendAwake] = useState(false);
   const [name, setName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -259,6 +260,27 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem('muted') === 'true');
+
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const cleanUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        const res = await fetch(`${cleanUrl}/health`);
+        if (res.ok) {
+          setIsBackendAwake(true);
+        }
+      } catch (e) {
+        // Silently fail, it's expected during cold start
+      }
+    };
+
+    if (!isBackendAwake) {
+      checkBackend();
+      const interval = setInterval(checkBackend, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [isBackendAwake]);
 
   useEffect(() => {
     socket.on('gameStateUpdate', (state) => {
@@ -344,6 +366,69 @@ export default function App() {
   const me = gameState?.players.find(p => p.id === socket.id);
 
   // --- RENDERING HELPERS ---
+
+  if (!isBackendAwake) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-stars overflow-hidden">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center text-center max-w-md"
+        >
+          <div className="relative mb-12">
+            <motion.div 
+              animate={{ 
+                rotate: 360,
+                scale: [1, 1.1, 1],
+              }}
+              transition={{ 
+                rotate: { duration: 8, repeat: Infinity, ease: "linear" },
+                scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+              }}
+              className="w-32 h-32 rounded-full border-4 border-dashed border-neon-cyan border-opacity-30"
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-12 h-12 text-neon-cyan animate-spin" />
+            </div>
+            
+            {/* Pulsing glow effect */}
+            <motion.div 
+              animate={{ opacity: [0.2, 0.5, 0.2] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute -inset-4 bg-neon-cyan rounded-full blur-2xl -z-10"
+            />
+          </div>
+
+          <h1 className="text-3xl font-black uppercase italic tracking-tighter mb-4 text-white">
+            Waking Up <span className="text-neon-cyan">Game Server</span>
+          </h1>
+          
+          <div className="space-y-4">
+            <p className="text-white opacity-60 text-sm leading-relaxed">
+              We're using a free tier server which goes to sleep after inactivity. 
+              This usually takes <span className="text-neon-cyan font-bold">1-2 minutes</span> to spin back up.
+            </p>
+            
+            <div className="glass p-4 rounded-xl border border-white border-opacity-10">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-neon-cyan font-bold mb-2">Pro Tip</p>
+              <p className="text-xs text-white opacity-40">
+                While you wait, think of some tricky one-word answers to throw off the crew!
+              </p>
+            </div>
+            
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 60, ease: "linear" }}
+              className="h-1 bg-neon-cyan bg-opacity-20 rounded-full overflow-hidden"
+            >
+              <motion.div className="h-full bg-neon-cyan shadow-glow glow-cyan" />
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (view === 'name') {
     return (
