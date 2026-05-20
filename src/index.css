@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-space-900 text-white min-h-screen overflow-x-hidden;
+  background-image: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0f 100%);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+}
+
+.glow-red {
+  box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+}
+
+.glass {
+  @apply bg-white bg-opacity-5 backdrop-blur-md border border-white border-opacity-10;
+}
